@@ -1,5 +1,5 @@
-# rm(list=ls()) # 変数のクリア
-# graphics.off() # 図表のクリア
+# rm(list=ls()); gc(); gc(); graphics.off(); #おまじない
+# setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) #作業フォルダ
 
 library(tidyverse)
 library(readxl)
@@ -75,6 +75,7 @@ df_raw <- read_folder_keihyo(data_path_konki, column_names, Q_or_FY)
 
 # 今期フォルダの読み込み
 df_raw_zenki <- read_folder_keihyo(data_path_zenki, column_names, Q_or_FY)
+# value列をvalue_zenkiに変更
 
 # 三段表の開始行を指定
 start_row = 5
@@ -88,6 +89,7 @@ item_order <- unlist(item$item)
 # データセットの成形 -----------------------------------------------------------------
 
 df <- df_raw %>% 
+  # 今期データに、前期データをbind_rowsし、今期データがなければ前期データを採用
   mutate(FSR = substr(code, 8, 8),          # 左から8文字目、FSR
          sec = substr(code, 9, 11),         # 9文字目から11文字目、部門
          AL  = substr(code, 12, 12),        # 12文字目、資産／負債
