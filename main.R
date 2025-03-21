@@ -1,5 +1,5 @@
-rm(list=ls()) # 変数のクリア
-graphics.off() # 図表のクリア
+rm(list=ls()); gc(); gc(); graphics.off(); #おまじない
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) #作業フォルダ
 
 get_keihyo <- 0
 # 0：QとFYの両方
