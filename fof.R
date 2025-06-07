@@ -4,7 +4,7 @@
 library(tidyverse)
 library(readxl)
 library(writexl)
-library(tictoc)
+# library(tictoc)
 source("function/read_folder.R") # フォルダ内のcsvを全て読み込む関数
 source("function/format_sandan.R") # ヘッダーとNAを追加する関数（三段表作成用）
 source("function/format_matrix.R") # ヘッダーを追加する関数（マトリクス作成用）
@@ -13,6 +13,25 @@ source("function/add_na_rows.R") # あるデータフレームの後に、指定
 # tic() # 時間計測開始
 
 # 設定 ----------------------------------------------------------------------
+
+# 期種・期初指定（基準改定まで更新不要）
+# Q_or_FY <- "Q"
+if (Q_or_FY == "Q"){
+  start_period <- 200501
+}else if (Q_or_FY == "FY"){
+  start_period <- 2004
+}else{
+  stop("期種を正しく指定してください")
+}
+
+# 結果格納フォルダパス
+result_folder <- str_c("result/", Q_or_FY)
+
+# 三段表の開始行、FSR間の行数を指定
+start_row = 5
+sandan_interval = 200
+
+# マスタ・データ読み込み ---------------------------------------------------------------
 # マスタファイル内の全シート名を取得
 sheet_names <- excel_sheets(master_path)
 
@@ -33,7 +52,7 @@ item <- master_data[["項目"]] %>%
   mutate(item = as.character(item))
 
 # 初期データフレームの列名の指定
-column_names = c("code", "QFY", "period", "value")
+column_names <- c("code", "QFY", "period", "value")
 
 # 計表を読み込み、QFYをフィルターする関数
 read_folder_keihyo <- function(fol_path, column_names, freq){
@@ -42,28 +61,21 @@ read_folder_keihyo <- function(fol_path, column_names, freq){
     select(-QFY)
 }
 
-# 期種・期初指定（基準改定まで更新不要）
-# Q_or_FY <- "Q"
-if (Q_or_FY == "Q"){
-  start_period <- 200501
-}else if (Q_or_FY == "FY"){
-  start_period <- 2004
-}else{
-  stop("期種を正しく指定してください")
-}
-
-# フォルダパス
-result_folder <- str_c("result/", Q_or_FY)
-
 # 今期フォルダの読み込み
-df_raw <- read_folder_keihyo(data_path_konki, column_names, Q_or_FY)
+df_raw_konki <- read_folder_keihyo(data_path_konki, column_names, Q_or_FY)
 
-# 今期フォルダの読み込み
+# 前期フォルダの読み込み
 df_raw_zenki <- read_folder_keihyo(data_path_zenki, column_names, Q_or_FY)
-# value列をvalue_zenkiに変更
 
-# 三段表の開始行を指定
-start_row = 5
+# 前期フォルダと今期フォルダを結合（FOF作業用）
+# 例えば、今期フォルダに速確期しか入れないようなケースを想定
+df_raw <- df_raw_zenki %>%
+  filter(!period %in% df_raw_konki$period) %>% 
+  bind_rows(df_raw_konki)
+
+# value列をvalue_zenkiに変更（後でjoinする際に重複しないように）
+df_raw_zenki <- df_raw_zenki %>% 
+  rename(value_zenki = value)
   
 # 並び替え順を指定
 FSR_order <- c("F","S","R")
@@ -89,8 +101,6 @@ df <- df_raw %>%
   left_join(sector, by = "sec")  %>% 
   left_join(item, by = "item")  %>% 
   left_join(df_raw_zenki, by = c("code", "period")) %>% 
-  rename(value = value.x,
-         value_zenki = value.y) %>% 
   select(-code) %>% 
   mutate(
     # 今期コードが追加されたときも、（前期を0にして）前期差が表示されるようにする
@@ -103,7 +113,7 @@ df <- df_raw %>%
   ) 
 
 # 以後使用しないデータフレームを変数リストから削除
-# rm(df_raw, df_raw_zenki)
+# rm(df_raw, df_raw_zenki, df_raw_konki)
 
 # Excel出力データ作成関数 ----------------------------------------------------
 prepare_excel <- function(df, column_name, style) {
@@ -118,7 +128,7 @@ prepare_excel <- function(df, column_name, style) {
       { 
         if (style == "sandan") {
           format_sandan(., header_sandan,
-                        start_row, start_row + 200, start_row + 400)  # 三段表の場合
+                        start_row, start_row + sandan_interval, start_row + sandan_interval*2)  # 三段表の場合
         } 
         else if (style == "matrix") {
           format_matrix(., header_matrix)  # マトリクスの場合

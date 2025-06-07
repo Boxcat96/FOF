@@ -8,8 +8,8 @@ format_matrix <- function(df, header) {
   df_empty <- df %>% slice(0)
   
   # NA行追加
-  new_df <- add_na_rows(df_empty, header, nrow(header))
-  new_df <- bind_rows(new_df, df)
+  new_df <- add_na_rows(df_empty, header, nrow(header)) %>% 
+    bind_rows(df)
   
   # ヘッダーの代入
   new_df[1:nrow(header), ] <- header
