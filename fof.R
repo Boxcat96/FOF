@@ -10,16 +10,10 @@ source("function/format_sandan.R") # ヘッダーとNAを追加する関数（�
 source("function/format_matrix.R") # ヘッダーを追加する関数（マトリクス作成用）
 source("function/add_na_rows.R") # あるデータフレームの後に、指定された行までNAを挿入する関数
 
-tic() # 時間計測開始
+# tic() # 時間計測開始
 
 # 設定 ----------------------------------------------------------------------
-# マスターファイルの読み込み
-# setwd("C:/Users/tkero/OneDrive/経済ファイル/02_分析/93_FOF計表")
-
-# マスタファイルのパスを指定
-master_path <- "data/master.xlsx"
-
-# ファイル内の全シート名を取得
+# マスタファイル内の全シート名を取得
 sheet_names <- excel_sheets(master_path)
 
 # すべてのシートをリストに読み込む
@@ -29,15 +23,6 @@ master_data <- lapply(sheet_names, function(sheet) {
 
 # リストの名前をシート名に設定
 names(master_data) <- sheet_names
-
-# フォルダパスと時期を指定
-master_info <- master_data[["master"]]
-
-folder_path <- as.character(master_info[1, 1]) # このファイルのパス
-data_path_konki <- as.character(master_info[2, 1]) # 今回データのパス
-data_path_zenki <- as.character(master_info[3, 1]) # 前期データのパス
-soku <- as.numeric(master_info[4, 1])          # 速報期
-kaku <- as.numeric(master_info[5, 1])          # 確報期
 
 # 部門情報を格納
 sector <- master_data[["部門"]] %>% 
@@ -204,13 +189,10 @@ output <- prepare_excel(df_koumoku, "item_name", "sandan")
 write_xlsx(output, path = str_c(result_folder, "/2_項目別_三段表.xlsx"),
            col_names = FALSE)
 
-
-# Q計表の場合は続行（mark1）
-if (Q_or_FY == "Q"){
   
   # マトリクス用データフレーム（項目を大項目・中項目・小項目にソート）
   df_matrix_raw <- df %>% 
-    filter(period == soku | period == kaku) %>%
+    filter(period == soku | period == kaku | period == soku_FY) %>%
     arrange(period, sec, item, FSR, AL) %>%
     mutate(
       item = as.numeric(as.character(item)),  
@@ -243,7 +225,11 @@ if (Q_or_FY == "Q"){
   # 速確マトリクス
   df_matrix <- df_matrix_raw %>%
     select(-value_zenki, -value_zenkisa) %>%
-    mutate(period = if_else(period == soku, "速報", "確報")) %>%
+    mutate(period = case_when(
+      period == soku ~ "速報",
+      period == kaku ~ "確報",
+      period == soku_FY ~ "年度"
+    )) %>% 
     select(-sec, -item) %>% 
     mutate(FSR = as.character(FSR)) %>% # FSRがfactor型であることによるエラーへの対応)
     pivot_wider(names_from = c(sector_name, AL), 
@@ -258,7 +244,10 @@ if (Q_or_FY == "Q"){
   output <- prepare_excel(df_matrix, "period", "matrix")
   write_xlsx(output, path = str_c(result_folder, "/3_速確マトリクス.xlsx"),
              col_names = FALSE)
-  
+
+# Q計表の場合は続行
+if (Q_or_FY == "Q"){  
+    
   # 速確乖離
   df_kairi <- df_matrix_raw %>% 
     select(-value, -value_zenki) %>% 
@@ -287,6 +276,6 @@ if (Q_or_FY == "Q"){
   output <- prepare_excel(df_graph, "FSR", "else")
   write_xlsx(output, path = str_c(result_folder, "/5_FSRグラフ.xlsx"))
 
-} #（mark1）
+}
 
-toc() # 時間計測終了
+# toc() # 時間計測終了
