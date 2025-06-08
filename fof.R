@@ -28,8 +28,8 @@ if (Q_or_FY == "Q"){
 result_folder <- str_c("result/", Q_or_FY)
 
 # 三段表の開始行、FSR間の行数を指定
-start_row = 5
-sandan_interval = 200
+start_row <- 5
+sandan_interval <- 200
 
 # マスタ・データ読み込み ---------------------------------------------------------------
 # マスタファイル内の全シート名を取得
@@ -97,7 +97,7 @@ df <- df_raw %>%
          & (AL == "A" | AL == "L")
          & !(item == "750" | item == "751"))  %>% # 季調済系列を削除
   complete(period, FSR, AL, sec, item) %>% 
-  filter(!((FSR == "F" | FSR == "R" ) & period <= start_period)) %>%  # 不要データの削除
+  filter(!((FSR == "F" | FSR == "R" ) & period <= start_period)) %>%  # FRの冒頭期を削除
   left_join(sector, by = "sec")  %>% 
   left_join(item, by = "item")  %>% 
   left_join(df_raw_zenki, by = c("code", "period")) %>% 
