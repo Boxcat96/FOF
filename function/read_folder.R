@@ -1,5 +1,7 @@
 # フォルダ内のcsvを読み込む関数
 read_folder <- function(fol_path, column_names) {
+  # library(tidyverse)
+  
   # フォルダ内のCSVファイルを取得
   file_list <- list.files(path = fol_path, pattern = "\\.csv$"
                           , full.names = TRUE)
