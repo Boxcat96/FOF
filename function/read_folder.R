@@ -12,11 +12,10 @@ read_folder <- function(fol_path, column_names) {
   }
   
   # 読み込み処理
-  combined_df <- do.call(rbind, lapply(file_list, function(file) {
-    # ファイルを読み込み、列名を適用
-    read_csv(file, col_names = FALSE) %>% 
-      setNames(column_names)
-  }))
+  combined_df <- file_list %>%
+    map(~ read_csv(.x, col_names = FALSE) %>% 
+          setNames(column_names)) %>% 
+    bind_rows()
   
   # データフレームを返す
   return(combined_df)

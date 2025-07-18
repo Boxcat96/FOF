@@ -36,9 +36,7 @@ sandan_interval <- 200
 sheet_names <- excel_sheets(master_path)
 
 # すべてのシートをリストに読み込む
-master_data <- lapply(sheet_names, function(sheet) {
-  read_excel(master_path, sheet = sheet)
-})
+master_data <- map(sheet_names, ~ read_excel(master_path, sheet = .x))
 
 # リストの名前をシート名に設定
 names(master_data) <- sheet_names
@@ -197,7 +195,7 @@ prepare_excel <- function(df,
   categories <- unique(df[[column_name]])
 
   # フィルタリング結果をリストに保存
-  output <- lapply(categories, function(cat) { # categories内の全要素に対して以下の作業を実施
+  output <- map(categories, function(cat) { # categories内の全要素に対して以下の作業を実施
     df %>%
       filter(!!sym(column_name) == cat) %>%  # column_nameを動的に参照し、各要素でフィルター
       { 
